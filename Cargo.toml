@@ -6,7 +6,7 @@ edition = "2021"
 [dependencies]
 plotly = "0.10"
 rand = "0.8"
-honeycomb = { git = "https://github.com/LIHPC-Computational-Geometry/honeycomb", rev = "a924645", features = ['render']}
+honeycomb = { git = "https://github.com/LIHPC-Computational-Geometry/honeycomb", rev = "b27fc16", features = ['render']}
 wgpu = "23"
 pollster = "0.3"
 log = "0.4"

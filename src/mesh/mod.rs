@@ -138,8 +138,6 @@ pub fn sort_vertices_topologically(
     sorted.push(vertices[0].clone());
     used[0] = true;
 
-    dbg!(&vertices);
-
     // For each position to fill
     while sorted.len() < vertices.len() {
         let current = sorted.last().unwrap();
@@ -200,8 +198,8 @@ pub fn generate_mesh(pixels: &[usize], num_colors: usize) -> Result<(), &'static
 
         // Sort vertices using topological information instead of angles
         sort_vertices_topologically(face_vertices, &vertex_map);
-
         // Add darts for this face. at the end we need the exact number of darts or it will panic
+
         map.add_free_darts(face_vertices.len());
 
         // Process each vertex pair to insert and sew the darts
@@ -223,19 +221,21 @@ pub fn generate_mesh(pixels: &[usize], num_colors: usize) -> Result<(), &'static
             edges.insert((current_vertex, next_vertex), dart_id);
             // Sew to opposite dart by checking if it exists in the edges map
             if let Some(&opposite_dart) = edges.get(&(next_vertex, current_vertex)) {
-                map.force_two_sew(opposite_dart, dart_id);
+                map.force_sew::<2>(opposite_dart, dart_id);
             }
             // Sew to previous dart in face
             if i > 0 {
-                map.force_one_sew(dart_id - 1, dart_id);
+                map.force_sew::<1>(dart_id - 1, dart_id);
             }
 
             dart_id += 1;
         }
 
         // Close the face by sewing first and last darts
-        map.force_one_sew(dart_id - 1, dart_id - face_vertices.len() as u32);
+        map.force_sew::<1>(dart_id - 1, dart_id - face_vertices.len() as u32);
     }
+
+    //map.iter_faces().collect()
 
     // Visualize the result
     let mut render_app = App::default();
