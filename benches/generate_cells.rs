@@ -21,7 +21,7 @@ fn load_points() -> Vec<(f64, f64)> {
 pub fn criterion_benchmark(c: &mut Criterion) {
     let points = load_points();
 
-    let mut group = c.benchmark_group("jfa");
+    let mut group = c.benchmark_group("generate_cells");
     group.sample_size(10);
     group.bench_function("jfa_gpu", |b| {
         b.iter(|| run(black_box(&points), black_box((10., 10.))))

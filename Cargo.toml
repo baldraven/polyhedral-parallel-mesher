@@ -13,10 +13,31 @@ log = "0.4"
 bytemuck = "1.19"
 flume = "0.11"
 env_logger = "0.11"
-criterion = "0.5.1"
 clap = { version = "4.5.21", features = ["derive"] }
 
+[dev-dependencies]
+iai-callgrind = "0.14.0"
+criterion = "0.5.1"
+
+[profile.release]
+debug = true
+
+[profile.bench]
+debug = true
+
 [[bench]]
-name = "jfa"
+name = "generate_cells"
+harness = false
+
+[[bench]]
+name = "binary_benchmark"
+harness = false
+
+[[bench]]
+name = "generate_mesh"
+harness = false
+
+[[bench]]
+name = "generate_points"
 harness = false
 
