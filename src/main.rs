@@ -15,12 +15,12 @@ fn main() {
         std::process::exit(1);
     });
 
-    // Visualize
-    handle_output(&cli, &points, Some(&pixels));
-
-    generate_mesh(&pixels, points.len()).unwrap_or_else(|err| {
+    
+    let mesh = generate_mesh(&pixels, points.len()).unwrap_or_else(|err| {
         println!("Problem generating mesh: {err}");
         std::process::exit(1);
     });
 
+    // Visualize
+    handle_output(&cli, &points, Some(&pixels), Some(&mesh));
 }

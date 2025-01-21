@@ -1,3 +1,5 @@
+use honeycomb::prelude::CMap2;
+use honeycomb::render::App;
 use plotly::common::{ColorScalePalette, Mode};
 use plotly::{HeatMap, Layout, Plot, Scatter};
 
@@ -79,4 +81,10 @@ pub fn plot_points(points: &[(f64, f64)]) {
 
     plot.set_layout(layout);
     plot.show();
+}
+
+pub fn plot_mesh(map: &CMap2<f32>) {
+    let mut render_app = App::default();
+    render_app.add_capture(&map);
+    render_app.run(); 
 }
