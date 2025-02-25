@@ -1,4 +1,6 @@
-use iai_callgrind::{binary_benchmark, binary_benchmark_group, main, FlamegraphConfig, BinaryBenchmarkConfig};
+use iai_callgrind::{
+    binary_benchmark, binary_benchmark_group, main, BinaryBenchmarkConfig, FlamegraphConfig,
+};
 
 #[binary_benchmark]
 #[bench::multiple("-d", "0.1")]

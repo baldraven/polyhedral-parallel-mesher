@@ -6,8 +6,9 @@ use std::io::{BufRead, BufReader};
 fn load_points() -> Vec<(f64, f64)> {
     let file = File::open("benches/mocked_data/points.txt").expect("Failed to open points file");
     let reader = BufReader::new(file);
-    
-    reader.lines()
+
+    reader
+        .lines()
         .filter_map(|line| {
             let line = line.ok()?;
             let mut coords = line.split(',');

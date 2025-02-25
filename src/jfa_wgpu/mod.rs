@@ -1,4 +1,4 @@
-const RESO: usize = 512;
+const RESO: usize = 2048;
 
 pub async fn run(points: &[(f64, f64)], config: (f64, f64)) -> Vec<u32> {
     let context = WgpuContext::new(
@@ -134,7 +134,6 @@ pub fn main(points: &[(f64, f64)], config: (f64, f64)) -> Result<Vec<usize>, &'s
     .format_timestamp_nanos()
     .init(); */
     let a = pollster::block_on(run(points, config));
-
     Ok(a.into_iter().map(|x| x as usize).collect())
 }
 

@@ -23,8 +23,8 @@ pub fn plot_heatmap_with_points(
 
     // Generate the range of colors and shuffle them
     let mut colors: Vec<usize> = (1..=points.len()).collect();
-    colors.shuffle(&mut thread_rng());
-
+/*     colors.shuffle(&mut thread_rng());
+ */
     // Create a mapping from region value to shuffled color index
     let value_to_color: Vec<usize> = colors;
 
@@ -86,5 +86,5 @@ pub fn plot_points(points: &[(f64, f64)]) {
 pub fn plot_mesh(map: &CMap2<f32>) {
     let mut render_app = App::default();
     render_app.add_capture(&map);
-    render_app.run(); 
+    render_app.run();
 }

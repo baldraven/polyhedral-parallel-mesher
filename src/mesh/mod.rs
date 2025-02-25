@@ -1,6 +1,11 @@
 use honeycomb::core::cmap::CMap2;
-use honeycomb::core::prelude::{CMapBuilder, Vertex2};
+use honeycomb::prelude::{CMapBuilder, DartIdType, Orbit2, OrbitPolicy, Vertex2};
+use plotly::color;
+use wgpu::hal::auxil::db;
 use std::collections::HashMap;
+use std::io::Write;
+use std::process::exit;
+use std::time::Instant; // Add this import
 
 fn is_subset(sub: &[usize], sup: &[usize]) -> bool {
     sub.iter().all(|x| sup.contains(x))
@@ -10,7 +15,10 @@ fn is_subset(sub: &[usize], sup: &[usize]) -> bool {
 // e.g., input [[[1, 2, 3], [1, 2, 3, 4]], [1,2,3]] outputs [[[1, 2, 3, 4]],[[1, 2, 3, 4]]]
 // input vec![vec![vec![1, 2, 4], vec![1, 2, 5]], vec![vec![1, 2, 6], vec![1, 2, 7]]] outputs vec![vec![vec![1, 2, 4], vec![1, 2, 5]], vec![vec![1, 2, 6], vec![1, 2, 7]]]
 // input vec![vec![vec![1, 2, 3], vec![1, 2, 3, 4]], vec![vec![1, 2, 5], vec![1, 2, 4, 5]]] outputs vec![vec![vec![1, 2, 3, 4]], vec![vec![1, 2, 4, 5]]]
-fn remove_subsets_quadratic(vertices: &mut Vec<Vec<Vec<usize>>>, vertex_map: &mut HashMap<Vec<usize>, (u32, u32)>) {
+fn remove_subsets_quadratic(
+    vertices: &mut Vec<Vec<Vec<usize>>>,
+    vertex_map: &mut HashMap<Vec<usize>, (u32, u32)>,
+) {
     let mut max_vertices: HashMap<Vec<usize>, Vec<usize>> = HashMap::new();
 
     // First pass: find all subsets and their corresponding maximal sets
@@ -84,6 +92,8 @@ pub fn extract_voronoi_cell_vertices(
     color_vertices: &mut [Vec<Vec<usize>>],
     vertex_map: &mut HashMap<Vec<usize>, (u32, u32)>,
 ) {
+    let start = Instant::now();
+
     for (idx, &current_color) in grid.iter().enumerate() {
         let x = (idx % res) as u32;
         let y = (idx / res) as u32;
@@ -106,6 +116,12 @@ pub fn extract_voronoi_cell_vertices(
             }
         }
     }
+
+    let duration = start.elapsed();
+    println!(
+        "Time elapsed in extract_voronoi_cell_vertices: {:?}",
+        duration
+    );
 }
 
 /// Returns the number of common elements between two sorted vectors
@@ -159,8 +175,12 @@ fn choose_next_vertex(
 pub fn sort_vertices_topologically(
     vertices: &mut Vec<Vec<usize>>,
     vertex_map: &HashMap<Vec<usize>, (u32, u32)>,
-) {
+) -> bool {
     assert!(vertices.len() >= 3);
+
+/*     dbg!(&vertices);
+    dbg!(&vertex_map);
+    print!("__________________________"); */
 
     let mut sorted = Vec::with_capacity(vertices.len());
     let mut used = vec![false; vertices.len()];
@@ -182,7 +202,16 @@ pub fn sort_vertices_topologically(
 
         match candidates.len() {
             0 => {
-                assert!(count_common_elements(current, &vertices[0]) == 2);
+                // TODO: investigate in what cases this can happen
+                //dbg!("reached here");
+                dbg!(sorted.len());
+                dbg!(vertices.len());
+                dbg!(vertices);
+                dbg!(&sorted);
+                dbg!(used);
+                dbg!(current);
+                println!("Warning: incoherent face vertices");
+                return false
             }
             1 => {
                 // last iteration
@@ -200,12 +229,16 @@ pub fn sort_vertices_topologically(
         }
     }
 
+    assert!(count_common_elements(sorted.first().unwrap(), sorted.last().unwrap()) >= 2);
     *vertices = sorted;
+    return true
 }
 
 /// Generates a combinatorial map from a pixel grid by sewing darts between vertices.
 /// Each face in the map corresponds to a color region in the pixel grid.
-pub fn generate_mesh(pixels: &[usize], num_colors: usize) -> Result<CMap2<f32>, &'static str>{
+pub fn generate_mesh(pixels: &[usize], num_colors: usize) -> Result<CMap2<f32>, &'static str> {
+    let start = Instant::now();
+
     let res = (pixels.len() as f64).sqrt() as usize;
     let mut color_vertices: Vec<Vec<Vec<usize>>> = vec![Vec::new(); num_colors];
     let mut vertex_map: HashMap<Vec<usize>, (u32, u32)> = HashMap::new();
@@ -214,11 +247,59 @@ pub fn generate_mesh(pixels: &[usize], num_colors: usize) -> Result<CMap2<f32>, 
 
     extract_voronoi_cell_vertices(pixels, res, &mut color_vertices, &mut vertex_map);
 
+
+
+    //write vertex_map into a file
+    let mut file = std::fs::File::create("vertex_map.txt").unwrap();
+    for (key, value) in &vertex_map {
+        writeln!(file, "{:?} {:?}", key, value).unwrap();
+    }
+
+    let mut file = std::fs::File::create("color.txt").unwrap();
+    for (i, vertices) in color_vertices.iter().enumerate() {
+        writeln!(file, "{:?} {:?}", i, vertices).unwrap();
+    }
+
+
+
+
     let mut map: CMap2<f32> = CMapBuilder::default().build().unwrap();
 
     let mut dart_id = 1;
 
-    remove_subsets_quadratic(&mut color_vertices, &mut vertex_map); // We might want to change the logic here if we see significant benefits thanks to profiling, having higher resolution could work
+/* 
+remove_subsets_quadratic(&mut color_vertices, &mut vertex_map); // We might want to change the logic here if we see significant benefits thanks to profiling, having higher resolution could work
+ */ // THIS FUNCTION DOES NOTHING IN THIS CASE
+
+
+
+    let face_vertices_mock = [
+        [
+            0,
+            16,
+            34,
+        ],
+        [
+            10,
+            16,
+            34,
+        ],
+        [
+            10,
+            16,
+            19,
+        ],
+        [
+            9,
+            16,
+            19,
+        ],
+        [
+            0,
+            9,
+            16,
+        ],
+    ];
 
     // Process each face (color region)
     for face_vertices in color_vertices.iter_mut() {
@@ -227,9 +308,13 @@ pub fn generate_mesh(pixels: &[usize], num_colors: usize) -> Result<CMap2<f32>, 
         }
 
         // Sort vertices using topological information instead of angles
-        sort_vertices_topologically(face_vertices, &vertex_map);
-        // Add darts for this face. at the end we need the exact number of darts or it will panic
+        if !sort_vertices_topologically(face_vertices, &vertex_map) {
+            continue;
+        }
 
+        
+
+        // Add darts for this face. at the end we need the exact number of darts or it will panic
         map.add_free_darts(face_vertices.len());
 
         // Process each vertex pair to insert and sew the darts
@@ -243,8 +328,9 @@ pub fn generate_mesh(pixels: &[usize], num_colors: usize) -> Result<CMap2<f32>, 
             if !vertices_id.contains_key(current_vertex) {
                 vertices_id.insert(current_vertex.to_vec(), dart_id);
                 let (x, y) = vertex_map[current_vertex];
+                const SCALE: f32 = 5.0;
                 let scaled_pos =
-                    Vertex2::from((x as f32 * 5.0 / res as f32, y as f32 * 5.0 / res as f32));
+                    Vertex2::from((x as f32 * SCALE / res as f32, y as f32 * SCALE / res as f32));
                 map.force_write_vertex(dart_id, scaled_pos);
             }
 
@@ -265,5 +351,54 @@ pub fn generate_mesh(pixels: &[usize], num_colors: usize) -> Result<CMap2<f32>, 
         map.force_sew::<1>(dart_id - 1, dart_id - face_vertices.len() as u32);
     }
 
+     //Print the facets and its vertices of the map -- we're looking at face_id 85
+/*      println!("Facets in the map:");
+     map.iter_faces()
+         .for_each(|face_id| {
+             println!("Face {}", face_id);
+             println!("  Vertices:");
+             Orbit2::new(&map, OrbitPolicy::Custom(&[1]), face_id as DartIdType)
+                 .for_each(|dart_id| {
+                     let vid = map.vertex_id(dart_id);
+                     let vertex = map.force_read_vertex(vid).unwrap();
+                     println!("    {:?}", vertex);
+                 }); */
+          /*   if (face_id == 85) {
+                println!("Face {}", face_id);
+                println!("  Vertices:"); */
+            /*     Orbit2::new(&map, OrbitPolicy::Custom(&[1]), face_id as DartIdType)
+                    .for_each(|dart_id| {
+                        let vid = map.vertex_id(dart_id);
+                        let vertex = map.force_read_vertex(vid).unwrap();
+                        println!("    {:?}", vertex);
+                    }); */
+      
+/*                 }
+            } */
+
+    let mut orbit = Orbit2::new(&map, OrbitPolicy::Custom(&[1]), 188 as DartIdType);
+    while let Some(dart_id) = orbit.next() {
+        let vid = map.vertex_id(dart_id);
+        let vertex = map.force_read_vertex(vid).unwrap();
+        println!("    {:?}, {}", vertex, vid);
+    };
+
+    let duration = start.elapsed();
+    println!("Time elapsed in generate_mesh: {:?}", duration);
     Ok(map)
 }
+
+/* #[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn test_sort_vertices_topologically(){
+        let mut vertices = vec![vec![0, 21, 24], vec![21, 22,], vec![1, 2, 4]];
+        let mut vertex_map = HashMap::new();
+        vertex_map.insert(vec![1, 2, 3], (0, 0));
+        vertex_map.insert(vec![1, 2, 3, 4], (0, 0));
+        vertex_map.insert(vec![1, 2, 4], (0, 0));
+        sort_vertices_topologically(&mut vertices, &vertex_map);
+        assert_eq!(vertices, vec![vec![1, 2, 3, 4]]);
+    } */

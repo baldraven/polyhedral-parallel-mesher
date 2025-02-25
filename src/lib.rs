@@ -39,11 +39,19 @@ pub fn generate_cells(points: &[(f64, f64)], cli: &cli::Cli) -> Result<Vec<usize
     }
 }
 
-pub fn generate_mesh(pixels: &[usize], num_colors: usize) -> Result<honeycomb::prelude::CMap2<f32>, &'static str> {
+pub fn generate_mesh(
+    pixels: &[usize],
+    num_colors: usize,
+) -> Result<honeycomb::prelude::CMap2<f32>, &'static str> {
     mesh::generate_mesh(pixels, num_colors)
 }
 
-pub fn handle_output(cli: &cli::Cli, points: &Vec<(f64, f64)>, pixels: Option<&Vec<usize>>, map: Option<&CMap2<f32>>) {
+pub fn handle_output(
+    cli: &cli::Cli,
+    points: &Vec<(f64, f64)>,
+    pixels: Option<&Vec<usize>>,
+    map: Option<&CMap2<f32>>,
+) {
     // Export points to a CSV file if specified
     if let Some(ref export_path) = cli.export {
         let mut file = File::create(export_path).expect("Unable to create file");
@@ -72,4 +80,26 @@ pub fn handle_output(cli: &cli::Cli, points: &Vec<(f64, f64)>, pixels: Option<&V
             plot::plot_mesh(map);
         }
     }
+}
+
+pub fn load_points(filename: &str) -> Result<Vec<(f64, f64)>, Box<dyn std::error::Error>> {
+    let content = std::fs::read_to_string(filename)?;
+    let mut points = Vec::new();
+    
+    for line in content.lines() {
+        let coords: Vec<f64> = line
+            .split_whitespace()
+            .filter_map(|s| s.parse().ok())
+            .collect();
+            
+        if coords.len() == 2 {
+            points.push((coords[0], coords[1]));
+        }
+    }
+
+    if points.is_empty() {
+        return Err("No valid points found in file".into());
+    }
+
+    Ok(points)
 }
