@@ -1,4 +1,7 @@
-const RESO: usize = 2048;
+pub mod visualization;
+use visualization::generate_image_visualization;
+const RESO: usize = 16;
+
 
 pub async fn run(points: &[(f64, f64)], config: (f64, f64)) -> Vec<u32> {
     let context = WgpuContext::new(
@@ -33,15 +36,63 @@ pub async fn run(points: &[(f64, f64)], config: (f64, f64)) -> Vec<u32> {
 
     log::info!("Starting JFA iterations...");
 
-    jfa_step(&context, &mut local_buffer, 1).await;
+    // Visualize initial state before any JFA steps
+   // visualize_buffer(&local_buffer, "initial_state").await;
+
+   // jfa_step(&context, &mut local_buffer, 1).await; -- doing visualisation without step 1
+    // Visualize after first step
+    visualize_buffer(&local_buffer, "step_1").await;
+
+    let mut step_count = 2;
     while k >= 1 {
         jfa_step(&context, &mut local_buffer, k).await;
+        // Visualize after each step
+        visualize_buffer(&local_buffer, &format!("step_{}_k{}", step_count, k)).await;
+        step_count += 1;
         k /= 2;
     }
 
     log::info!("done!");
 
     local_buffer
+}
+
+// Fixed function to visualize the buffer state (removed .await from generate_image_visualization call)
+async fn visualize_buffer(buffer: &[u32], step_name: &str) {
+    log::info!("Visualizing buffer state: {}", step_name);
+    
+    // Create a directory for visualization outputs if it doesn't exist
+    let vis_dir = "/home/ely/gitlab/blue_noise/visualizations";
+    if !std::path::Path::new(vis_dir).exists() {
+        std::fs::create_dir_all(vis_dir).expect("Failed to create visualization directory");
+    }
+    
+    // Simple text-based visualization for debugging
+    // Save the buffer state to a file
+    let filename = format!("{}/{}.txt", vis_dir, step_name);
+    let mut file = std::fs::File::create(&filename).expect("Failed to create visualization file");
+    
+    use std::io::Write;
+    writeln!(file, "Buffer state at {}", step_name).expect("Failed to write to file");
+    
+    // Print grid representation
+    for y in 0..RESO {
+        for x in 0..RESO {
+            let idx = x + y * RESO;
+            write!(file, "{:4}", buffer[idx]).expect("Failed to write to file");
+        }
+        writeln!(file).expect("Failed to write to file");
+    }
+    
+    // Generate and save image visualization
+    let img_filename = format!("{}/{}.png", vis_dir, step_name);
+    if let Err(e) = generate_image_visualization(buffer, &img_filename) {
+        log::error!("Failed to generate image: {}", e);
+    } else {
+        log::info!("Image visualization saved to {}", img_filename);
+    }
+    
+    log::info!("Text visualization saved to {}", filename);
 }
 
 async fn jfa_step(context: &WgpuContext, local_buffer: &mut [u32], k: u32) {

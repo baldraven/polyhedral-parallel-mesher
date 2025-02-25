@@ -10,11 +10,11 @@ fn main() {
 
     let start = Instant::now();
 
-/*     // Processing
+    // Processing
     let points = generate_points(&cli).unwrap_or_else(|err| {
         println!("Problem generating points: {err}");
         std::process::exit(1);
-    }); */
+    });
 
 /*     // write points to file
     let mut file = std::fs::File::create("points.txt").unwrap_or_else(|err| {
@@ -26,29 +26,28 @@ fn main() {
             println!("Problem writing to file: {err}");
             std::process::exit(1);
         });
-    }
- */
+    } 
 
     // We are in MOCKMODE. so we'll load the points instead of randomly generating them
     let points = load_points("points.txt").unwrap_or_else(|err| {
         println!("Problem loading points: {err}");
         std::process::exit(1);
     });
-
+ */
 
     let pixels = generate_cells(&points, &cli).unwrap_or_else(|err| {
         println!("Problem running JFA: {err}");
         std::process::exit(1);
     });
-
+/* 
     let mesh = generate_mesh(&pixels, points.len()).unwrap_or_else(|err| {
         println!("Problem generating mesh: {err}");
         std::process::exit(1);
     });
-
+ */
     let duration = start.elapsed();
     println!("Time elapsed: {:?}", duration);
 
     // Visualize
-    handle_output(&cli, &points, Some(&pixels), Some(&mesh));
+    handle_output(&cli, &points, Some(&pixels), None);
 }
