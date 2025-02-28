@@ -2,7 +2,7 @@
 @group(0) @binding(1) var<uniform> step: u32;
 @group(0) @binding(2) var<storage, read> normal_points: array<u32>;
 
-const RESO: u32 = 16;
+const RESO: u32 = 22000;
 
 fn metric(x1: u32, y1: u32, x2: u32, y2: u32) -> u32 {
     let dx = (x1 - x2) * (x1 - x2);
