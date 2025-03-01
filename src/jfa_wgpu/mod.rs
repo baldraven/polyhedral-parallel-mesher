@@ -1,6 +1,6 @@
 pub mod visualization;
 use visualization::generate_image_visualization;
-const RESO: usize = 16;
+const RESO: usize = 22000;
 
 
 pub async fn run(points: &[(f64, f64)], config: (f64, f64)) -> Vec<u32> {
@@ -31,23 +31,28 @@ pub async fn run(points: &[(f64, f64)], config: (f64, f64)) -> Vec<u32> {
         0,
         bytemuck::cast_slice(&normal_points),
     );
+    context.queue.write_buffer(
+        &context.storage_buffer,
+        0,
+        bytemuck::cast_slice(&local_buffer),
+    );
 
     let mut k = (RESO / 2).max(1) as u32;
 
     log::info!("Starting JFA iterations...");
 
     // Visualize initial state before any JFA steps
-   // visualize_buffer(&local_buffer, "initial_state").await;
-
-   // jfa_step(&context, &mut local_buffer, 1).await; -- doing visualisation without step 1
+    // jfa_step(&context, &mut local_buffer, 1).await; -- doing visualisation without step 1
     // Visualize after first step
-    visualize_buffer(&local_buffer, "step_1").await;
+    // visualize_buffer(&local_buffer, "step_1").await;
+
+
 
     let mut step_count = 2;
     while k >= 1 {
         jfa_step(&context, &mut local_buffer, k).await;
         // Visualize after each step
-        visualize_buffer(&local_buffer, &format!("step_{}_k{}", step_count, k)).await;
+        //visualize_buffer(&local_buffer, &format!("step_{}_k{}", step_count, k)).await;
         step_count += 1;
         k /= 2;
     }
@@ -57,7 +62,6 @@ pub async fn run(points: &[(f64, f64)], config: (f64, f64)) -> Vec<u32> {
     local_buffer
 }
 
-// Fixed function to visualize the buffer state (removed .await from generate_image_visualization call)
 async fn visualize_buffer(buffer: &[u32], step_name: &str) {
     log::info!("Visualizing buffer state: {}", step_name);
     
@@ -96,14 +100,6 @@ async fn visualize_buffer(buffer: &[u32], step_name: &str) {
 }
 
 async fn jfa_step(context: &WgpuContext, local_buffer: &mut [u32], k: u32) {
-    //log::info!("Dispatching JFA step with k = {}", k);
-
-    context.queue.write_buffer(
-        &context.storage_buffer,
-        0,
-        bytemuck::cast_slice(local_buffer),
-    );
-
     context
         .queue
         .write_buffer(&context.step_buffer, 0, bytemuck::cast_slice(&[k]));
@@ -120,14 +116,6 @@ async fn jfa_step(context: &WgpuContext, local_buffer: &mut [u32], k: u32) {
         compute_pass.set_bind_group(0, &context.bind_group, &[]);
         compute_pass.dispatch_workgroups((RESO / 16) as u32, (RESO / 16) as u32, 1);
     }
-
-    command_encoder.copy_buffer_to_buffer(
-        &context.storage_buffer,
-        0,
-        &context.output_staging_buffer,
-        0,
-        context.storage_buffer.size(),
-    );
 
     context.queue.submit(Some(command_encoder.finish()));
 
@@ -206,12 +194,17 @@ impl WgpuContext {
             .request_adapter(&wgpu::RequestAdapterOptions::default())
             .await
             .unwrap();
+
+        let mut limits = wgpu::Limits::default();
+        limits.max_buffer_size = 2000<<20; // 2GiB
+        limits.max_storage_buffer_binding_size = 2000<<20; // 2GiB
+
         let (device, queue) = adapter
             .request_device(
                 &wgpu::DeviceDescriptor {
                     label: None,
                     required_features: wgpu::Features::empty(),
-                    required_limits: wgpu::Limits::downlevel_defaults(),
+                    required_limits: limits,
                     memory_hints: wgpu::MemoryHints::Performance,
                 },
                 None,
