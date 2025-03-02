@@ -25,7 +25,7 @@ def run_benchmark(min_res, max_res, step, d, nb_call_per_res):
         times = []
         
         for _ in range(nb_call_per_res):
-            cmd = f"cargo run --release -- -v -p none -d {d} --reso {res}"
+            cmd = f"cargo run --release -- -v -p none -d {d} --reso {res} -j cpu"
             result = subprocess.run(cmd, shell=True, text=True, capture_output=True)
             
             # Extract the elapsed time from the output

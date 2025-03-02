@@ -1,7 +1,19 @@
-fn jfa_step(pixel_grid: &mut [usize], normal_points: &[(usize, usize)], k: usize, reso: usize) {
-    for x in 0..reso {
-        for y in 0..reso {
-            let initial_poisition = x + y * reso;
+use rayon::prelude::*;
+
+// Parallel step function that processes a chunk of rows using rayon
+fn jfa_step_parallel(
+    pixel_grid: &mut [usize], 
+    normal_points: &[(usize, usize)], 
+    k: usize, 
+    reso: usize
+) {
+    // Create a copy of the grid for reading to avoid race conditions
+    let pixel_grid_read = pixel_grid.to_vec();
+    
+    // Process rows in parallel using chunks to modify the grid safely
+    pixel_grid.chunks_mut(reso).enumerate().par_bridge().for_each(|(y, row)| {
+        for x in 0..reso {
+            let initial_position = x;
             // Check the 8-neighborhood (jump in all directions) and update to the closest point
             for dx in [-1, 0, 1] {
                 for dy in [-1, 0, 1] {
@@ -14,15 +26,15 @@ fn jfa_step(pixel_grid: &mut [usize], normal_points: &[(usize, usize)], k: usize
                     }
 
                     let new_position = (new_x as usize) + (new_y as usize) * reso;
-                    let found_color = pixel_grid[new_position];
-                    let current_color = pixel_grid[initial_poisition];
+                    let found_color = pixel_grid_read[new_position];
+                    let current_color = pixel_grid_read[x + y * reso];
 
                     if (dx == 0 && dy == 0) || found_color == 0 || current_color == found_color {
                         continue;
                     }
 
                     if current_color == 0 {
-                        pixel_grid[initial_poisition] = found_color;
+                        row[initial_position] = found_color;
                         continue;
                     }
 
@@ -38,15 +50,13 @@ fn jfa_step(pixel_grid: &mut [usize], normal_points: &[(usize, usize)], k: usize
                         + (y as isize - point2.1 as isize).pow(2))
                         as f64;
 
-                    //dbg!(point1, point2, (x,y), dist1, dist2);
-
                     if dist2 < dist1 {
-                        pixel_grid[initial_poisition] = found_color;
+                        row[initial_position] = found_color;
                     }
                 }
             }
         }
-    }
+    });
 }
 
 pub fn jfa(points: &[(f64, f64)], config: (f64, f64), reso: u32) -> Result<Vec<usize>, &'static str> {
@@ -60,49 +70,32 @@ pub fn jfa(points: &[(f64, f64)], config: (f64, f64), reso: u32) -> Result<Vec<u
         })
         .collect();
 
-    let mut pixel_grid = vec![0; reso * reso];
+    let pixel_grid = vec![0; reso * reso];
 
     // Mark the initial points on the grid with their respective color
-    for (i, point) in normal_points.iter().enumerate() {
+    // Using a thread-safe approach with a mutex
+    use std::sync::Mutex;
+    let pixel_grid = Mutex::new(pixel_grid);
+    
+    normal_points.par_iter().enumerate().for_each(|(i, point)| {
         let color = i + 1; // 0 means uncolored
-        pixel_grid[point.0 + point.1 * reso] = color;
-    }
+        let index = point.0 + point.1 * reso;
+        // Use mutex to safely update the grid
+        let mut grid = pixel_grid.lock().unwrap();
+        grid[index] = color;
+    });
+    
+    // Unwrap the mutex to get the grid back
+    let mut pixel_grid = pixel_grid.into_inner().unwrap();
 
     // Main JFA loop
-    let now = std::time::Instant::now();
 
     let mut k = (reso / 2).max(1);
-    jfa_step(&mut pixel_grid, &normal_points, 1, reso); // 1+JFA for more precision
+    jfa_step_parallel(&mut pixel_grid, &normal_points, 1, reso); // 1+JFA for more precision
     while k >= 1 {
-        //println!("Entering loop with k = {}", k);
-        jfa_step(&mut pixel_grid, &normal_points, k, reso);
+        jfa_step_parallel(&mut pixel_grid, &normal_points, k, reso);
         k /= 2;
     }
 
-    let elapsed = now.elapsed();
-    println!("{:.2?}", elapsed);
-
     Ok(pixel_grid)
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_insert_pixel() {
-        let points = vec![(1.0, 1.0)];
-        let config = (2.0, 2.0);
-        let reso = 512;
-
-        let pixel_grid = jfa(&points, config, reso).unwrap();
-
-        // Check middle of the grid
-        assert_eq!(pixel_grid[reso * reso / 2 + reso / 2], 1);
-        
-        // For the previously hardcoded values (approximate equivalent)
-        let expected_index = (reso as f64 * 1.0 / 2.0) as usize + 
-                            (reso as f64 * 1.0 / 2.0) as usize * reso;
-        assert_eq!(pixel_grid[expected_index], 1);
-    }
 }

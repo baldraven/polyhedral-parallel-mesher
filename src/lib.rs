@@ -1,5 +1,6 @@
 pub mod cli;
 pub mod jfa_cpu;
+pub mod jfa_rayon;
 pub mod jfa_wgpu;
 pub mod mesh;
 pub mod mesh_wgpu;
@@ -34,7 +35,11 @@ pub fn generate_cells(points: &[(f64, f64)], cli: &cli::Cli) -> Result<Vec<usize
         }
         cli::JfaMode::Cpu => {
             println!("Generating cells using CPU with resolution {}...", cli.reso);
-            jfa_cpu::jfa(points, (cli.x, cli.y))
+            jfa_cpu::jfa(points, (cli.x, cli.y), cli.reso)
+        }
+        cli::JfaMode::Rayon => {
+            println!("Generating cells using Rayon (parallel CPU) with resolution {}...", cli.reso);
+            jfa_rayon::jfa(points, (cli.x, cli.y), cli.reso)
         }
     }
 }

@@ -67,6 +67,7 @@ pub enum PlotMode {
 pub enum JfaMode {
     Cpu,
     Gpu,
+    Rayon,
     None,
 }
 
