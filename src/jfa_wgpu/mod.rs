@@ -46,12 +46,21 @@ pub async fn run(points: &[(f64, f64)], config: (f64, f64), reso: u32) -> Vec<u3
 
     log::info!("Starting JFA iterations...");
 
-   // let mut step_count = 2;
+//    let mut step_count = 2;
     while k >= 1 {
         jfa_step(&context, &mut local_buffer, k, reso_usize).await;
  //       step_count += 1;
         k /= 2;
     }
+
+    get_data(
+        &mut local_buffer,
+        &context.storage_buffer,
+        &context.output_staging_buffer,
+        &context.device,
+        &context.queue,
+    )
+    .await;
 
     log::info!("done!");
 
@@ -117,15 +126,6 @@ async fn jfa_step(context: &WgpuContext, local_buffer: &mut [u32], k: u32, reso:
     }
 
     context.queue.submit(Some(command_encoder.finish()));
-    //TODO: don't get data until the end https://github.com/gfx-rs/wgpu/wiki/Do's-and-Dont's
-    get_data(
-        local_buffer,
-        &context.storage_buffer,
-        &context.output_staging_buffer,
-        &context.device,
-        &context.queue,
-    )
-    .await;
 }
 
 async fn get_data<T: bytemuck::Pod>(
