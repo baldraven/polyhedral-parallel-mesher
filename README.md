@@ -25,6 +25,9 @@ It will then generate a Voronoï diagram using the Jump Flooding Algorithm (with
   <img src="https://i.imgur.com/KG1w3Dw.png" width="350" />
 </p>
 
+## Benchmark
+```python benchmark.py --min_res 10 --max_res 100 --step 10 --d 1.5 --nb_call_per_res 5```
+
 ## Reference
 
 [Jump flooding in GPU with applications to Voronoi diagram and distance transform](http://dx.doi.org/10.1145/1111411.1111431)

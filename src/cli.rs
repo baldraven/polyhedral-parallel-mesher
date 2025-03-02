@@ -38,8 +38,8 @@ pub struct Cli {
     pub jfa_mode: JfaMode,
 
     /// Sets the resolution for JFA
-    #[arg(short = 'r', long = "res", default_value_t = 512)]
-    pub res: u32,
+    #[arg(short = 'r', long = "reso", default_value_t = 22000)]
+    pub reso: u32,
 
     // Disable honeycomb visualization
     #[arg(short = 'v', long = "no-mesh-visualization")]
@@ -86,7 +86,7 @@ pub fn print_config(cli: &Cli) {
     println!("Plot mode: {:?}", cli.plot);
     println!("JFA mode: {:?}", cli.jfa_mode);
     if cli.jfa_mode != JfaMode::None {
-        println!("JFA resolution: {}", cli.res);
+        println!("JFA resolution: {}", cli.reso);
     }
     if cli.no_mesh_visualization {
         println!("Mesh visualization disabled");

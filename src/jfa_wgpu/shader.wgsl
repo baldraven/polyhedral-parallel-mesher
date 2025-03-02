@@ -1,8 +1,7 @@
 @group(0) @binding(0) var<storage, read_write> pixel_grid: array<u32>;
 @group(0) @binding(1) var<uniform> step: u32;
 @group(0) @binding(2) var<storage, read> normal_points: array<u32>;
-
-const RESO: u32 = 22000;
+@group(0) @binding(3) var<uniform> reso: u32;
 
 fn metric(x1: u32, y1: u32, x2: u32, y2: u32) -> u32 {
     let dx = (x1 - x2) * (x1 - x2);
@@ -15,11 +14,11 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
     let x = global_id.x;
     let y = global_id.y;
 
-    if (x >= RESO || y >= RESO) {
+    if (x >= reso || y >= reso) {
         return;
     }
 
-    let index: u32 = x + y * RESO;
+    let index: u32 = x + y * reso;
     var current_color = pixel_grid[index];
     let initial_position = index;
 
@@ -30,11 +29,11 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
             let new_x = u32(i32(x) + dx * i32(step));
             let new_y = u32(i32(y) + dy * i32(step));
 
-            if !(new_x >= 0 && new_x < RESO && new_y >= 0 && new_y < RESO) {
+            if !(new_x >= 0 && new_x < reso && new_y >= 0 && new_y < reso) {
                 continue;
             }
 
-            let new_position: u32 = (new_x) + (new_y) * RESO;
+            let new_position: u32 = (new_x) + (new_y) * reso;
             let found_color = pixel_grid[new_position];
             current_color = pixel_grid[initial_position];
 

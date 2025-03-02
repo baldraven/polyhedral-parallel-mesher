@@ -29,11 +29,11 @@ pub fn generate_cells(points: &[(f64, f64)], cli: &cli::Cli) -> Result<Vec<usize
     match cli.jfa_mode {
         cli::JfaMode::None => Ok(vec![]),
         cli::JfaMode::Gpu => {
-            println!("Generating cells using GPU with resolution {}...", cli.res);
-            jfa_wgpu::main(points, (cli.x, cli.y))
+            println!("Generating cells using GPU with resolution {}...", cli.reso);
+            jfa_wgpu::main(points, (cli.x, cli.y), cli.reso)
         }
         cli::JfaMode::Cpu => {
-            println!("Generating cells using CPU with resolution {}...", cli.res);
+            println!("Generating cells using CPU with resolution {}...", cli.reso);
             jfa_cpu::jfa(points, (cli.x, cli.y))
         }
     }
@@ -85,13 +85,13 @@ pub fn handle_output(
 pub fn load_points(filename: &str) -> Result<Vec<(f64, f64)>, Box<dyn std::error::Error>> {
     let content = std::fs::read_to_string(filename)?;
     let mut points = Vec::new();
-    
+
     for line in content.lines() {
         let coords: Vec<f64> = line
             .split_whitespace()
             .filter_map(|s| s.parse().ok())
             .collect();
-            
+
         if coords.len() == 2 {
             points.push((coords[0], coords[1]));
         }

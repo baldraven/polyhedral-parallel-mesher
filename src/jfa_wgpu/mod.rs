@@ -1,23 +1,25 @@
 pub mod visualization;
-use visualization::generate_image_visualization;
-const RESO: usize = 22000;
+//use visualization::generate_image_visualization;
+use std::mem::size_of_val;
 
+pub async fn run(points: &[(f64, f64)], config: (f64, f64), reso: u32) -> Vec<u32> {
+    let reso_usize = reso as usize;
 
-pub async fn run(points: &[(f64, f64)], config: (f64, f64)) -> Vec<u32> {
     let context = WgpuContext::new(
-        RESO * RESO * std::mem::size_of::<u32>(),
+        reso_usize * reso_usize * std::mem::size_of::<u32>(),
         points.len() * std::mem::size_of::<(u32, u32)>(),
+        reso,
     )
     .await;
 
-    let normal_points = init_normal_points(points, config);
+    let normal_points = init_normal_points(points, config, reso_usize);
 
-    let mut local_buffer = vec![0; RESO * RESO];
+    let mut local_buffer = vec![0; reso_usize * reso_usize];
 
     // Mark the initial points on the grid with their respective color
     for (i, point) in normal_points.iter().enumerate() {
         let color = i + 1; // 0 means uncolored
-        local_buffer[point.0 as usize + point.1 as usize * RESO] = color as u32;
+        local_buffer[point.0 as usize + point.1 as usize * reso_usize] = color as u32;
     }
 
     // Flatten normal_points
@@ -36,24 +38,18 @@ pub async fn run(points: &[(f64, f64)], config: (f64, f64)) -> Vec<u32> {
         0,
         bytemuck::cast_slice(&local_buffer),
     );
+    context
+        .queue
+        .write_buffer(&context.reso_buffer, 0, bytemuck::cast_slice(&[reso]));
 
-    let mut k = (RESO / 2).max(1) as u32;
+    let mut k = (reso_usize / 2).max(1) as u32;
 
     log::info!("Starting JFA iterations...");
 
-    // Visualize initial state before any JFA steps
-    // jfa_step(&context, &mut local_buffer, 1).await; -- doing visualisation without step 1
-    // Visualize after first step
-    // visualize_buffer(&local_buffer, "step_1").await;
-
-
-
-    let mut step_count = 2;
+   // let mut step_count = 2;
     while k >= 1 {
-        jfa_step(&context, &mut local_buffer, k).await;
-        // Visualize after each step
-        //visualize_buffer(&local_buffer, &format!("step_{}_k{}", step_count, k)).await;
-        step_count += 1;
+        jfa_step(&context, &mut local_buffer, k, reso_usize).await;
+ //       step_count += 1;
         k /= 2;
     }
 
@@ -62,23 +58,24 @@ pub async fn run(points: &[(f64, f64)], config: (f64, f64)) -> Vec<u32> {
     local_buffer
 }
 
+/*
 async fn visualize_buffer(buffer: &[u32], step_name: &str) {
     log::info!("Visualizing buffer state: {}", step_name);
-    
+
     // Create a directory for visualization outputs if it doesn't exist
     let vis_dir = "/home/ely/gitlab/blue_noise/visualizations";
     if !std::path::Path::new(vis_dir).exists() {
         std::fs::create_dir_all(vis_dir).expect("Failed to create visualization directory");
     }
-    
+
     // Simple text-based visualization for debugging
     // Save the buffer state to a file
     let filename = format!("{}/{}.txt", vis_dir, step_name);
     let mut file = std::fs::File::create(&filename).expect("Failed to create visualization file");
-    
+
     use std::io::Write;
     writeln!(file, "Buffer state at {}", step_name).expect("Failed to write to file");
-    
+
     // Print grid representation
     for y in 0..RESO {
         for x in 0..RESO {
@@ -87,7 +84,7 @@ async fn visualize_buffer(buffer: &[u32], step_name: &str) {
         }
         writeln!(file).expect("Failed to write to file");
     }
-    
+
     // Generate and save image visualization
     let img_filename = format!("{}/{}.png", vis_dir, step_name);
     if let Err(e) = generate_image_visualization(buffer, &img_filename) {
@@ -95,11 +92,13 @@ async fn visualize_buffer(buffer: &[u32], step_name: &str) {
     } else {
         log::info!("Image visualization saved to {}", img_filename);
     }
-    
+
     log::info!("Text visualization saved to {}", filename);
 }
 
-async fn jfa_step(context: &WgpuContext, local_buffer: &mut [u32], k: u32) {
+*/
+
+async fn jfa_step(context: &WgpuContext, local_buffer: &mut [u32], k: u32, reso: usize) {
     context
         .queue
         .write_buffer(&context.step_buffer, 0, bytemuck::cast_slice(&[k]));
@@ -114,11 +113,10 @@ async fn jfa_step(context: &WgpuContext, local_buffer: &mut [u32], k: u32) {
         });
         compute_pass.set_pipeline(&context.pipeline);
         compute_pass.set_bind_group(0, &context.bind_group, &[]);
-        compute_pass.dispatch_workgroups((RESO / 16) as u32, (RESO / 16) as u32, 1);
+        compute_pass.dispatch_workgroups((reso as u32 / 16) as u32, (reso as u32 / 16) as u32, 1);
     }
 
     context.queue.submit(Some(command_encoder.finish()));
-
     //TODO: don't get data until the end https://github.com/gfx-rs/wgpu/wiki/Do's-and-Dont's
     get_data(
         local_buffer,
@@ -156,23 +154,27 @@ async fn get_data<T: bytemuck::Pod>(
     staging_buffer.unmap();
 }
 
-fn init_normal_points(points: &[(f64, f64)], config: (f64, f64)) -> Vec<(u32, u32)> {
+fn init_normal_points(points: &[(f64, f64)], config: (f64, f64), reso: usize) -> Vec<(u32, u32)> {
     points
         .iter()
         .map(|(a, b)| {
-            let x = ((a * RESO as f64 / config.0).min(RESO as f64 - 1.0)) as u32;
-            let y = ((b * RESO as f64 / config.1).min(RESO as f64 - 1.0)) as u32;
+            let x = ((a * reso as f64 / config.0).min(reso as f64 - 1.0)) as u32;
+            let y = ((b * reso as f64 / config.1).min(reso as f64 - 1.0)) as u32;
             (x, y)
         })
         .collect()
 }
 
-pub fn main(points: &[(f64, f64)], config: (f64, f64)) -> Result<Vec<usize>, &'static str> {
-    /*     env_logger::builder()
-    .filter_level(log::LevelFilter::Info)
-    .format_timestamp_nanos()
-    .init(); */
-    let a = pollster::block_on(run(points, config));
+pub fn main(
+    points: &[(f64, f64)],
+    config: (f64, f64),
+    reso: u32,
+) -> Result<Vec<usize>, &'static str> {
+    env_logger::builder()
+        .filter_level(log::LevelFilter::Info)
+        .format_timestamp_nanos()
+        .init();
+    let a = pollster::block_on(run(points, config, reso));
     Ok(a.into_iter().map(|x| x as usize).collect())
 }
 
@@ -185,10 +187,11 @@ struct WgpuContext {
     output_staging_buffer: wgpu::Buffer,
     step_buffer: wgpu::Buffer,
     normal_points: wgpu::Buffer,
+    reso_buffer: wgpu::Buffer,
 }
 
 impl WgpuContext {
-    async fn new(buffer_size: usize, points_size: usize) -> WgpuContext {
+    async fn new(buffer_size: usize, points_size: usize, reso: u32) -> WgpuContext {
         let instance = wgpu::Instance::default();
         let adapter = instance
             .request_adapter(&wgpu::RequestAdapterOptions::default())
@@ -196,8 +199,8 @@ impl WgpuContext {
             .unwrap();
 
         let mut limits = wgpu::Limits::default();
-        limits.max_buffer_size = 2000<<20; // 2GiB
-        limits.max_storage_buffer_binding_size = 2000<<20; // 2GiB
+        limits.max_buffer_size = 2000 << 20; // 2GiB
+        limits.max_storage_buffer_binding_size = 2000 << 20; // 2GiB
 
         let (device, queue) = adapter
             .request_device(
@@ -234,7 +237,7 @@ impl WgpuContext {
             label: None,
             size: std::mem::size_of::<u32>() as wgpu::BufferAddress,
             usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
-            mapped_at_creation: false, //TODO: usage ?
+            mapped_at_creation: false,
         });
 
         let normal_points = device.create_buffer(&wgpu::BufferDescriptor {
@@ -243,6 +246,16 @@ impl WgpuContext {
             usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_DST,
             mapped_at_creation: false,
         });
+
+        let reso_buffer = device.create_buffer(&wgpu::BufferDescriptor {
+            label: None,
+            size: std::mem::size_of::<u32>() as wgpu::BufferAddress,
+            usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
+            mapped_at_creation: false,
+        });
+
+        // Write the resolution to the buffer
+        queue.write_buffer(&reso_buffer, 0, bytemuck::cast_slice(&[reso]));
 
         let bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
             label: None,
@@ -277,6 +290,16 @@ impl WgpuContext {
                     },
                     count: None,
                 },
+                wgpu::BindGroupLayoutEntry {
+                    binding: 3,
+                    visibility: wgpu::ShaderStages::COMPUTE,
+                    ty: wgpu::BindingType::Buffer {
+                        ty: wgpu::BufferBindingType::Uniform,
+                        has_dynamic_offset: false,
+                        min_binding_size: None,
+                    },
+                    count: None,
+                },
             ],
         });
 
@@ -295,6 +318,10 @@ impl WgpuContext {
                 wgpu::BindGroupEntry {
                     binding: 2,
                     resource: normal_points.as_entire_binding(),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 3,
+                    resource: reso_buffer.as_entire_binding(),
                 },
             ],
         });
@@ -322,10 +349,7 @@ impl WgpuContext {
             output_staging_buffer,
             step_buffer,
             normal_points,
+            reso_buffer,
         }
     }
 }
-
-/* #[cfg(test)]
-mod tests;
- */

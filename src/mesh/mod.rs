@@ -1,11 +1,11 @@
 use honeycomb::core::cmap::CMap2;
 use honeycomb::prelude::{CMapBuilder, DartIdType, Orbit2, OrbitPolicy, Vertex2};
-use plotly::color;
-use wgpu::hal::auxil::db;
+//use plotly::color;
 use std::collections::HashMap;
 use std::io::Write;
-use std::process::exit;
-use std::time::Instant; // Add this import
+//use std::process::exit;
+use std::time::Instant;
+//use wgpu::hal::auxil::db;
 
 fn is_subset(sub: &[usize], sup: &[usize]) -> bool {
     sub.iter().all(|x| sup.contains(x))
@@ -178,7 +178,7 @@ pub fn sort_vertices_topologically(
 ) -> bool {
     assert!(vertices.len() >= 3);
 
-/*     dbg!(&vertices);
+    /*     dbg!(&vertices);
     dbg!(&vertex_map);
     print!("__________________________"); */
 
@@ -211,7 +211,7 @@ pub fn sort_vertices_topologically(
                 dbg!(used);
                 dbg!(current);
                 println!("Warning: incoherent face vertices");
-                return false
+                return false;
             }
             1 => {
                 // last iteration
@@ -231,7 +231,7 @@ pub fn sort_vertices_topologically(
 
     assert!(count_common_elements(sorted.first().unwrap(), sorted.last().unwrap()) >= 2);
     *vertices = sorted;
-    return true
+    return true;
 }
 
 /// Generates a combinatorial map from a pixel grid by sewing darts between vertices.
@@ -247,8 +247,6 @@ pub fn generate_mesh(pixels: &[usize], num_colors: usize) -> Result<CMap2<f32>, 
 
     extract_voronoi_cell_vertices(pixels, res, &mut color_vertices, &mut vertex_map);
 
-
-
     //write vertex_map into a file
     let mut file = std::fs::File::create("vertex_map.txt").unwrap();
     for (key, value) in &vertex_map {
@@ -260,45 +258,21 @@ pub fn generate_mesh(pixels: &[usize], num_colors: usize) -> Result<CMap2<f32>, 
         writeln!(file, "{:?} {:?}", i, vertices).unwrap();
     }
 
-
-
-
     let mut map: CMap2<f32> = CMapBuilder::default().build().unwrap();
 
     let mut dart_id = 1;
 
-/* 
-remove_subsets_quadratic(&mut color_vertices, &mut vertex_map); // We might want to change the logic here if we see significant benefits thanks to profiling, having higher resolution could work
- */ // THIS FUNCTION DOES NOTHING IN THIS CASE
-
-
+    /*
+    remove_subsets_quadratic(&mut color_vertices, &mut vertex_map); // We might want to change the logic here if we see significant benefits thanks to profiling, having higher resolution could work
+     */
+    // THIS FUNCTION DOES NOTHING IN THIS CASE
 
     let face_vertices_mock = [
-        [
-            0,
-            16,
-            34,
-        ],
-        [
-            10,
-            16,
-            34,
-        ],
-        [
-            10,
-            16,
-            19,
-        ],
-        [
-            9,
-            16,
-            19,
-        ],
-        [
-            0,
-            9,
-            16,
-        ],
+        [0, 16, 34],
+        [10, 16, 34],
+        [10, 16, 19],
+        [9, 16, 19],
+        [0, 9, 16],
     ];
 
     // Process each face (color region)
@@ -311,8 +285,6 @@ remove_subsets_quadratic(&mut color_vertices, &mut vertex_map); // We might want
         if !sort_vertices_topologically(face_vertices, &vertex_map) {
             continue;
         }
-
-        
 
         // Add darts for this face. at the end we need the exact number of darts or it will panic
         map.add_free_darts(face_vertices.len());
@@ -351,37 +323,37 @@ remove_subsets_quadratic(&mut color_vertices, &mut vertex_map); // We might want
         map.force_sew::<1>(dart_id - 1, dart_id - face_vertices.len() as u32);
     }
 
-     //Print the facets and its vertices of the map -- we're looking at face_id 85
-/*      println!("Facets in the map:");
-     map.iter_faces()
-         .for_each(|face_id| {
-             println!("Face {}", face_id);
-             println!("  Vertices:");
-             Orbit2::new(&map, OrbitPolicy::Custom(&[1]), face_id as DartIdType)
-                 .for_each(|dart_id| {
-                     let vid = map.vertex_id(dart_id);
-                     let vertex = map.force_read_vertex(vid).unwrap();
-                     println!("    {:?}", vertex);
-                 }); */
-          /*   if (face_id == 85) {
-                println!("Face {}", face_id);
-                println!("  Vertices:"); */
-            /*     Orbit2::new(&map, OrbitPolicy::Custom(&[1]), face_id as DartIdType)
-                    .for_each(|dart_id| {
-                        let vid = map.vertex_id(dart_id);
-                        let vertex = map.force_read_vertex(vid).unwrap();
-                        println!("    {:?}", vertex);
-                    }); */
-      
-/*                 }
-            } */
+    //Print the facets and its vertices of the map -- we're looking at face_id 85
+    /*      println!("Facets in the map:");
+    map.iter_faces()
+        .for_each(|face_id| {
+            println!("Face {}", face_id);
+            println!("  Vertices:");
+            Orbit2::new(&map, OrbitPolicy::Custom(&[1]), face_id as DartIdType)
+                .for_each(|dart_id| {
+                    let vid = map.vertex_id(dart_id);
+                    let vertex = map.force_read_vertex(vid).unwrap();
+                    println!("    {:?}", vertex);
+                }); */
+    /*   if (face_id == 85) {
+    println!("Face {}", face_id);
+    println!("  Vertices:"); */
+    /*     Orbit2::new(&map, OrbitPolicy::Custom(&[1]), face_id as DartIdType)
+    .for_each(|dart_id| {
+        let vid = map.vertex_id(dart_id);
+        let vertex = map.force_read_vertex(vid).unwrap();
+        println!("    {:?}", vertex);
+    }); */
+
+    /*                 }
+    } */
 
     let mut orbit = Orbit2::new(&map, OrbitPolicy::Custom(&[1]), 188 as DartIdType);
     while let Some(dart_id) = orbit.next() {
         let vid = map.vertex_id(dart_id);
         let vertex = map.force_read_vertex(vid).unwrap();
         println!("    {:?}, {}", vertex, vid);
-    };
+    }
 
     let duration = start.elapsed();
     println!("Time elapsed in generate_mesh: {:?}", duration);
