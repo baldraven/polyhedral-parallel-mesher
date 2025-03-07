@@ -81,28 +81,20 @@ pub fn jfa(points: &[(f64, f64)], config: (f64, f64), reso: u32) -> Result<Vec<u
         })
         .collect();
 
-    let pixel_grid = vec![0; reso * reso];
+    let mut pixel_grid = vec![0; reso * reso];
 
-    // Mark the initial points on the grid with their respective color
-    // Using a thread-safe approach with a mutex
-    use std::sync::Mutex;
-    let pixel_grid = Mutex::new(pixel_grid);
-    
-    normal_points.par_iter().enumerate().for_each(|(i, point)| {
+    normal_points.iter().enumerate().for_each(|(i, point)| {
         let color = i + 1; // 0 means uncolored
         let index = point.0 + point.1 * reso;
         // Use mutex to safely update the grid
-        let mut grid = pixel_grid.lock().unwrap();
-        grid[index] = color;
+        pixel_grid[index] = color;
     });
-    
-    // Unwrap the mutex to get the grid back
-    let mut pixel_grid = pixel_grid.into_inner().unwrap();
+
 
     // Main JFA loop
 
     let mut k = (reso / 2).max(1);
-    jfa_step_parallel(&mut pixel_grid, &normal_points, 1, reso); // 1+JFA for more precision
+    //jfa_step_parallel(&mut pixel_grid, &normal_points, 1, reso); // 1+JFA for more precision
     while k >= 1 {
         jfa_step_parallel(&mut pixel_grid, &normal_points, k, reso);
         k /= 2;
