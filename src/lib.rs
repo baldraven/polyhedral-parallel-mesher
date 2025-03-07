@@ -1,13 +1,33 @@
 pub mod cli;
-pub mod jfa_cpu;
-pub mod jfa_rayon;
-pub mod jfa_wgpu;
-pub mod mesh;
-pub mod mesh_wgpu;
-mod mode1;
-mod mode2;
-pub mod mode3;
-mod plot;
+pub mod plot;
+
+// Re-export commonly used items for convenience
+pub use cli::{parse, Cli, JfaMode, Mode, PlotMode};
+
+pub mod generate_cells {
+    pub mod jfa {
+        pub mod cpu {
+            pub mod parallel;
+            pub mod sequential;
+        }
+        pub mod wgpu;
+    }
+    pub mod mesh_extraction{
+        pub mod cpu;
+        pub mod wgpu;
+    }
+}
+
+pub mod generate_points {
+    pub mod grid{
+        pub mod grid_with_n;
+        pub mod grid_with_d;
+    }
+    pub mod poisson_disk{
+        pub mod sequential;
+        pub mod parallel;
+    }
+}
 
 use std::fs::File;
 use std::io::Write;
@@ -16,13 +36,14 @@ use honeycomb::prelude::CMap2;
 
 pub fn generate_points(cli: &cli::Cli) -> Result<Vec<(f64, f64)>, &'static str> {
     match cli.mode {
-        cli::Mode::GridWithN => Ok(mode1::generate_points(
+        cli::Mode::GridWithN => Ok(generate_points::grid::grid_with_n::generate_points(
             cli.n,
             cli.x as usize,
             cli.y as usize,
         )),
-        cli::Mode::GridWithD => Ok(mode2::generate_points(cli.d, cli.x, cli.y)),
-        cli::Mode::PoissonDisk => Ok(mode3::generate_points(cli.d, cli.x, cli.y)),
+        cli::Mode::GridWithD => Ok(generate_points::grid::grid_with_d::generate_points(cli.d, cli.x, cli.y)),
+        cli::Mode::PoissonDisk => Ok(generate_points::poisson_disk::sequential::generate_points(cli.d, cli.x, cli.y)),
+        cli::Mode::PoissonDiskParallel => Ok(generate_points::poisson_disk::parallel::generate_points(cli.d, cli.x, cli.y)),
     }
 }
 
@@ -31,15 +52,15 @@ pub fn generate_cells(points: &[(f64, f64)], cli: &cli::Cli) -> Result<Vec<usize
         cli::JfaMode::None => Ok(vec![]),
         cli::JfaMode::Gpu => {
             println!("Generating cells using GPU with resolution {}...", cli.reso);
-            jfa_wgpu::main(points, (cli.x, cli.y), cli.reso)
+            generate_cells::jfa::wgpu::main(points, (cli.x, cli.y), cli.reso)
         }
         cli::JfaMode::Cpu => {
             println!("Generating cells using CPU with resolution {}...", cli.reso);
-            jfa_cpu::jfa(points, (cli.x, cli.y), cli.reso)
+            generate_cells::jfa::cpu::sequential::jfa(points, (cli.x, cli.y), cli.reso)
         }
         cli::JfaMode::Rayon => {
             println!("Generating cells using Rayon (parallel CPU) with resolution {}...", cli.reso);
-            jfa_rayon::jfa(points, (cli.x, cli.y), cli.reso)
+            generate_cells::jfa::cpu::parallel::jfa(points, (cli.x, cli.y), cli.reso)
         }
     }
 }
@@ -48,7 +69,7 @@ pub fn generate_mesh(
     pixels: &[usize],
     num_colors: usize,
 ) -> Result<honeycomb::prelude::CMap2<f32>, &'static str> {
-    mesh::generate_mesh(pixels, num_colors)
+    generate_cells::mesh_extraction::cpu::generate_mesh(pixels, num_colors)
 }
 
 pub fn handle_output(

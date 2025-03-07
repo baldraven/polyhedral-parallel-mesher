@@ -6,10 +6,10 @@ use std::path::PathBuf;
 #[command(version, about = "Point generation on a rectangle.")]
 pub struct Cli {
     /// Sets the point generation mode
-    #[arg(short = 'm', long = "mode", default_value = "poisson-disk", value_enum)]
+    #[arg(short = 'g', long = "generation", default_value = "poisson-disk-parallel", value_enum)]
     pub mode: Mode,
 
-    /// Sets the number of points to generate
+    /// Sets the number of points to generate. Only works with `grid-with-n` mode
     #[arg(short = 'n', default_value_t = 10)]
     pub n: u32,
 
@@ -29,20 +29,20 @@ pub struct Cli {
     #[arg(short = 'e', long = "export", value_name = "FILE")]
     pub export: Option<PathBuf>,
 
-    /// Plot options: `points`, `jfa`, or `none`
+    /// Plot options
     #[arg(short = 'p', long = "plot", default_value = "jfa", value_enum)]
     pub plot: PlotMode,
 
-    /// Sets the JFA mode: `cpu`, `gpu`, or `none`
+    /// Sets the JFA mode
     #[arg(short = 'j', long = "jfa-mode", default_value = "gpu", value_enum)]
     pub jfa_mode: JfaMode,
 
     /// Sets the resolution for JFA
-    #[arg(short = 'r', long = "reso", default_value_t = 22000)]
+    #[arg(short = 'r', long = "reso", default_value_t = 1024)]
     pub reso: u32,
 
     // Disable honeycomb visualization
-    #[arg(short = 'v', long = "no-mesh-visualization")]
+    #[arg(long = "no-mesh-visualization")]
     pub no_mesh_visualization: bool,
 }
 
@@ -52,6 +52,7 @@ pub enum Mode {
     GridWithN,
     GridWithD,
     PoissonDisk,
+    PoissonDiskParallel,
 }
 
 /// Plotting options
