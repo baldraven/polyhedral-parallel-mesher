@@ -1,53 +1,34 @@
-use std::io::Write;
-use std::time::Instant;
-
 use blue_noise::*;
+use std::time::Instant;
 
 fn main() {
     let cli = cli::parse();
     cli::print_config(&cli);
 
-    // Processing
+    let start_points = Instant::now();
     let points = generate_points(&cli).unwrap_or_else(|err| {
         println!("Problem generating points: {err}");
         std::process::exit(1);
     });
+    let duration_points = start_points.elapsed();
+    println!("Time elapsed for point generation: {:?}", duration_points);
 
-    /*     // write points to file
-       let mut file = std::fs::File::create("points.txt").unwrap_or_else(|err| {
-           println!("Problem creating file: {err}");
-           std::process::exit(1);
-       });
-       for point in &points {
-           writeln!(file, "{} {}", point.0, point.1).unwrap_or_else(|err| {
-               println!("Problem writing to file: {err}");
-               std::process::exit(1);
-           });
-       }
-
-       // We are in MOCKMODE. so we'll load the points instead of randomly generating them
-       let points = load_points("points.txt").unwrap_or_else(|err| {
-           println!("Problem loading points: {err}");
-           std::process::exit(1);
-       });
-    */
-    let start = Instant::now();
-
+    let start_jfa = Instant::now();
     let pixels = generate_cells(&points, &cli).unwrap_or_else(|err| {
         println!("Problem running JFA: {err}");
         std::process::exit(1);
     });
+    let duration_jfa = start_jfa.elapsed();
+    println!("Time elapsed for JFA: {:?}", duration_jfa);
 
-    let duration = start.elapsed();
-    println!("Time elapsed: {:?}", duration);
-
-    /*
-       let mesh = generate_mesh(&pixels, points.len()).unwrap_or_else(|err| {
-           println!("Problem generating mesh: {err}");
-           std::process::exit(1);
-       });
-    */
+    let start_mesh = Instant::now();
+    let mesh = generate_mesh(&pixels, points.len()).unwrap_or_else(|err| {
+        println!("Problem generating mesh: {err}");
+        std::process::exit(1);
+    });
+    let duration_mesh = start_mesh.elapsed();
+    println!("Time elapsed for mesh generation: {:?}", duration_mesh);
 
     // Visualize
-    handle_output(&cli, &points, Some(&pixels), None);
+    handle_output(&cli, &points, Some(&pixels), Some(&mesh));
 }

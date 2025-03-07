@@ -356,16 +356,16 @@ pub async fn run(pixels: &[usize], num_colors: usize) -> Result<(), &'static str
 
             edges.insert((current_vertex, next_vertex), dart_id);
             if let Some(&opposite_dart) = edges.get(&(next_vertex, current_vertex)) {
-                map.force_sew::<2>(opposite_dart, dart_id);
+                let _ = map.force_sew::<2>(opposite_dart, dart_id);
             }
             if i > 0 {
-                map.force_sew::<1>(dart_id - 1, dart_id);
+                let _ = map.force_sew::<1>(dart_id - 1, dart_id);
             }
 
             dart_id += 1;
         }
 
-        map.force_sew::<1>(dart_id - 1, dart_id - face_vertices.len() as u32);
+        let _ = map.force_sew::<1>(dart_id - 1, dart_id - face_vertices.len() as u32);
     }
 
     //Print the facets and its vertices of the map

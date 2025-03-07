@@ -1,5 +1,3 @@
-pub mod visualization;
-//use visualization::generate_image_visualization;
 use std::mem::size_of_val;
 
 pub async fn run(points: &[(f64, f64)], config: (f64, f64), reso: u32) -> Vec<u32> {
@@ -46,10 +44,8 @@ pub async fn run(points: &[(f64, f64)], config: (f64, f64), reso: u32) -> Vec<u3
 
     log::info!("Starting JFA iterations...");
 
-    //    let mut step_count = 2;
     while k >= 1 {
-        jfa_step(&context, &mut local_buffer, k, reso_usize).await;
-        //       step_count += 1;
+        jfa_step(&context, k, reso_usize).await;
         k /= 2;
     }
 
@@ -67,7 +63,7 @@ pub async fn run(points: &[(f64, f64)], config: (f64, f64), reso: u32) -> Vec<u3
     local_buffer
 }
 
-/*
+/* Was used for figure in report
 async fn visualize_buffer(buffer: &[u32], step_name: &str) {
     log::info!("Visualizing buffer state: {}", step_name);
 
@@ -107,7 +103,7 @@ async fn visualize_buffer(buffer: &[u32], step_name: &str) {
 
 */
 
-async fn jfa_step(context: &WgpuContext, local_buffer: &mut [u32], k: u32, reso: usize) {
+async fn jfa_step(context: &WgpuContext, k: u32, reso: usize) {
     context
         .queue
         .write_buffer(&context.step_buffer, 0, bytemuck::cast_slice(&[k]));
@@ -122,7 +118,7 @@ async fn jfa_step(context: &WgpuContext, local_buffer: &mut [u32], k: u32, reso:
         });
         compute_pass.set_pipeline(&context.pipeline);
         compute_pass.set_bind_group(0, &context.bind_group, &[]);
-        compute_pass.dispatch_workgroups((reso as u32 / 16) as u32, (reso as u32 / 16) as u32, 1);
+        compute_pass.dispatch_workgroups((reso / 16) as u32, (reso / 16) as u32, 1);
     }
 
     context.queue.submit(Some(command_encoder.finish()));

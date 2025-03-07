@@ -1,4 +1,4 @@
-use image::{ImageBuffer, Rgb, RgbImage};
+use image::{Rgb, RgbImage};
 use once_cell::sync::Lazy;
 use std::collections::HashMap;
 use std::path::Path;
