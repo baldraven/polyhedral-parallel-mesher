@@ -13,7 +13,7 @@ fn is_subset(sub: &[usize], sup: &[usize]) -> bool {
 // input vec![vec![vec![1, 2, 4], vec![1, 2, 5]], vec![vec![1, 2, 6], vec![1, 2, 7]]] outputs vec![vec![vec![1, 2, 4], vec![1, 2, 5]], vec![vec![1, 2, 6], vec![1, 2, 7]]]
 // input vec![vec![vec![1, 2, 3], vec![1, 2, 3, 4]], vec![vec![1, 2, 5], vec![1, 2, 4, 5]]] outputs vec![vec![vec![1, 2, 3, 4]], vec![vec![1, 2, 4, 5]]]
 fn remove_subsets_quadratic(
-    vertices: &mut Vec<Vec<Vec<usize>>>,
+    vertices: &mut [Vec<Vec<usize>>],
     vertex_map: &mut HashMap<Vec<usize>, (u32, u32)>,
 ) {
     let mut max_vertices: HashMap<Vec<usize>, Vec<usize>> = HashMap::new();
@@ -228,7 +228,7 @@ pub fn sort_vertices_topologically(
 
     assert!(count_common_elements(sorted.first().unwrap(), sorted.last().unwrap()) >= 2);
     *vertices = sorted;
-    return true;
+    true
 }
 
 /// Generates a combinatorial map from a pixel grid by sewing darts between vertices.

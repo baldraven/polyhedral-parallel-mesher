@@ -37,7 +37,7 @@ async fn process_mesh(pixels: &[u32], resolution: u32) -> Vec<Vertex> {
         compute_pass.set_pipeline(&context.pipeline);
         compute_pass.set_bind_group(0, &context.bind_group, &[]);
 
-        let workgroup_count = (resolution + WORKGROUP_SIZE - 1) / WORKGROUP_SIZE;
+        let workgroup_count = resolution.div_ceil(WORKGROUP_SIZE);
         compute_pass.dispatch_workgroups(workgroup_count, workgroup_count, 1);
     }
 
@@ -98,7 +98,7 @@ fn remove_subsets(vertices: &mut Vec<Vec<usize>>) {
 }
 
 fn _remove_subsets_quadratic(
-    vertices: &mut Vec<Vec<Vec<usize>>>,
+    vertices: &mut [Vec<Vec<usize>>],
     vertex_map: &mut HashMap<Vec<usize>, (u32, u32)>,
 ) {
     let mut max_vertices: HashMap<Vec<usize>, Vec<usize>> = HashMap::new();

@@ -194,9 +194,11 @@ impl WgpuContext {
             .await
             .unwrap();
 
-        let mut limits = wgpu::Limits::default();
-        limits.max_buffer_size = 2000 << 20; // 2GiB
-        limits.max_storage_buffer_binding_size = 2000 << 20; // 2GiB
+        let limits = wgpu::Limits {
+            max_buffer_size: 2000 << 20,
+            max_storage_buffer_binding_size: 2000 << 20,
+            ..Default::default()
+        };
 
         let (device, queue) = adapter
             .request_device(
