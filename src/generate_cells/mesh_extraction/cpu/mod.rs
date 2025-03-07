@@ -1,8 +1,6 @@
 use honeycomb::core::cmap::CMap2;
 use honeycomb::prelude::{CMapBuilder, Vertex2};
 use std::collections::HashMap;
-use std::io::Write;
-use std::time::Instant;
 
 fn is_subset(sub: &[usize], sup: &[usize]) -> bool {
     sub.iter().all(|x| sup.contains(x))
@@ -89,8 +87,6 @@ pub fn extract_voronoi_cell_vertices(
     color_vertices: &mut [Vec<Vec<usize>>],
     vertex_map: &mut HashMap<Vec<usize>, (u32, u32)>,
 ) {
-    let start = Instant::now();
-
     for (idx, &current_color) in grid.iter().enumerate() {
         let x = (idx % res) as u32;
         let y = (idx / res) as u32;
@@ -113,12 +109,6 @@ pub fn extract_voronoi_cell_vertices(
             }
         }
     }
-
-    let duration = start.elapsed();
-    println!(
-        "Time elapsed in extract_voronoi_cell_vertices: {:?}",
-        duration
-    );
 }
 
 /// Returns the number of common elements between two sorted vectors
@@ -175,12 +165,9 @@ pub fn sort_vertices_topologically(
 ) -> bool {
     assert!(vertices.len() >= 3);
 
-    /*     dbg!(&vertices);
-    dbg!(&vertex_map);
-    print!("__________________________"); */
-
     let mut sorted = Vec::with_capacity(vertices.len());
     let mut used = vec![false; vertices.len()];
+
     // Start with first vertex
     sorted.push(vertices[0].clone());
     used[0] = true;
@@ -199,15 +186,6 @@ pub fn sort_vertices_topologically(
 
         match candidates.len() {
             0 => {
-                // TODO: investigate in what cases this can happen
-                //dbg!("reached here");
-                dbg!(sorted.len());
-                dbg!(vertices.len());
-                dbg!(vertices);
-                dbg!(&sorted);
-                dbg!(used);
-                dbg!(current);
-                println!("Warning: incoherent face vertices");
                 return false;
             }
             1 => {
@@ -242,22 +220,11 @@ pub fn generate_mesh(pixels: &[usize], num_colors: usize) -> Result<CMap2<f32>, 
 
     extract_voronoi_cell_vertices(pixels, res, &mut color_vertices, &mut vertex_map);
 
-    //write vertex_map into a file
-    let mut file = std::fs::File::create("vertex_map.txt").unwrap();
-    for (key, value) in &vertex_map {
-        writeln!(file, "{:?} {:?}", key, value).unwrap();
-    }
-
-    let mut file = std::fs::File::create("color.txt").unwrap();
-    for (i, vertices) in color_vertices.iter().enumerate() {
-        writeln!(file, "{:?} {:?}", i, vertices).unwrap();
-    }
-
+    // We now have all the data we need to build the combinatorial map
     let mut map: CMap2<f32> = CMapBuilder::default().build().unwrap();
+    let mut dart_id = 1;  // Dart id starts at 1 in Honeycomb 
 
-    let mut dart_id = 1;
-
-    remove_subsets_quadratic(&mut color_vertices, &mut vertex_map); // We might want to change the logic here if we see significant benefits thanks to profiling, having higher resolution could work
+    remove_subsets_quadratic(&mut color_vertices, &mut vertex_map); // Profile this, might be unnecessary
 
     // Process each face (color region)
     for face_vertices in color_vertices.iter_mut() {
@@ -309,6 +276,10 @@ pub fn generate_mesh(pixels: &[usize], num_colors: usize) -> Result<CMap2<f32>, 
 
     Ok(map)
 }
+
+
+
+
 
 /* #[cfg(test)]
 mod test {
