@@ -19,16 +19,16 @@ fn main() {
         std::process::exit(1);
     });
     let duration_jfa = start_jfa.elapsed();
-    println!("Time elapsed for JFA: {:?}", duration_jfa);
+    println!("Time elapsed: {:?}", duration_jfa);
 
-    let start_mesh = Instant::now();
+/*     let start_mesh = Instant::now();
     let mesh = generate_mesh(&pixels, points.len()).unwrap_or_else(|err| {
         println!("Problem generating mesh: {err}");
         std::process::exit(1);
     });
     let duration_mesh = start_mesh.elapsed();
     println!("Time elapsed for mesh generation: {:?}", duration_mesh);
-
+ */
     // Visualize
-    handle_output(&cli, &points, Some(&pixels), Some(&mesh));
+    handle_output(&cli, &points, Some(&pixels), None);
 }
