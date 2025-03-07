@@ -46,10 +46,10 @@ pub async fn run(points: &[(f64, f64)], config: (f64, f64), reso: u32) -> Vec<u3
 
     log::info!("Starting JFA iterations...");
 
-//    let mut step_count = 2;
+    //    let mut step_count = 2;
     while k >= 1 {
         jfa_step(&context, &mut local_buffer, k, reso_usize).await;
- //       step_count += 1;
+        //       step_count += 1;
         k /= 2;
     }
 

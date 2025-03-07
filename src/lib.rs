@@ -12,20 +12,20 @@ pub mod generate_cells {
         }
         pub mod wgpu;
     }
-    pub mod mesh_extraction{
+    pub mod mesh_extraction {
         pub mod cpu;
         pub mod wgpu;
     }
 }
 
 pub mod generate_points {
-    pub mod grid{
-        pub mod grid_with_n;
+    pub mod grid {
         pub mod grid_with_d;
+        pub mod grid_with_n;
     }
-    pub mod poisson_disk{
-        pub mod sequential;
+    pub mod poisson_disk {
         pub mod parallel;
+        pub mod sequential;
     }
 }
 
@@ -41,9 +41,15 @@ pub fn generate_points(cli: &cli::Cli) -> Result<Vec<(f64, f64)>, &'static str> 
             cli.x as usize,
             cli.y as usize,
         )),
-        cli::Mode::GridWithD => Ok(generate_points::grid::grid_with_d::generate_points(cli.d, cli.x, cli.y)),
-        cli::Mode::PoissonDisk => Ok(generate_points::poisson_disk::sequential::generate_points(cli.d, cli.x, cli.y)),
-        cli::Mode::PoissonDiskParallel => Ok(generate_points::poisson_disk::parallel::generate_points(cli.d, cli.x, cli.y)),
+        cli::Mode::GridWithD => Ok(generate_points::grid::grid_with_d::generate_points(
+            cli.d, cli.x, cli.y,
+        )),
+        cli::Mode::PoissonDisk => Ok(generate_points::poisson_disk::sequential::generate_points(
+            cli.d, cli.x, cli.y,
+        )),
+        cli::Mode::PoissonDiskParallel => Ok(
+            generate_points::poisson_disk::parallel::generate_points(cli.d, cli.x, cli.y),
+        ),
     }
 }
 
@@ -59,7 +65,10 @@ pub fn generate_cells(points: &[(f64, f64)], cli: &cli::Cli) -> Result<Vec<usize
             generate_cells::jfa::cpu::sequential::jfa(points, (cli.x, cli.y), cli.reso)
         }
         cli::JfaMode::Rayon => {
-            println!("Generating cells using Rayon (parallel CPU) with resolution {}...", cli.reso);
+            println!(
+                "Generating cells using Rayon (parallel CPU) with resolution {}...",
+                cli.reso
+            );
             generate_cells::jfa::cpu::parallel::jfa(points, (cli.x, cli.y), cli.reso)
         }
     }

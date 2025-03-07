@@ -49,7 +49,11 @@ fn jfa_step(pixel_grid: &mut [usize], normal_points: &[(usize, usize)], k: usize
     }
 }
 
-pub fn jfa(points: &[(f64, f64)], config: (f64, f64), reso: u32) -> Result<Vec<usize>, &'static str> {
+pub fn jfa(
+    points: &[(f64, f64)],
+    config: (f64, f64),
+    reso: u32,
+) -> Result<Vec<usize>, &'static str> {
     let reso = reso as usize;
     let normal_points: Vec<(usize, usize)> = points
         .iter()
@@ -98,11 +102,14 @@ mod tests {
         let pixel_grid = jfa(&points, config, reso).unwrap();
 
         // Check middle of the grid
-        assert_eq!(pixel_grid[(reso as usize) * (reso as usize) / 2 + (reso as usize) / 2], 1);
-        
+        assert_eq!(
+            pixel_grid[(reso as usize) * (reso as usize) / 2 + (reso as usize) / 2],
+            1
+        );
+
         // For the previously hardcoded values (approximate equivalent)
-        let expected_index = (reso as f64 * 1.0 / 2.0) as usize + 
-                            (reso as f64 * 1.0 / 2.0) as usize * reso as usize;
+        let expected_index =
+            (reso as f64 * 1.0 / 2.0) as usize + (reso as f64 * 1.0 / 2.0) as usize * reso as usize;
         assert_eq!(pixel_grid[expected_index], 1);
     }
 }

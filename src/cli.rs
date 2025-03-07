@@ -6,7 +6,12 @@ use std::path::PathBuf;
 #[command(version, about = "Point generation on a rectangle.")]
 pub struct Cli {
     /// Sets the point generation mode
-    #[arg(short = 'g', long = "generation", default_value = "poisson-disk-parallel", value_enum)]
+    #[arg(
+        short = 'g',
+        long = "generation",
+        default_value = "poisson-disk-parallel",
+        value_enum
+    )]
     pub mode: Mode,
 
     /// Sets the number of points to generate. Only works with `grid-with-n` mode
