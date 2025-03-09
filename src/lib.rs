@@ -69,7 +69,12 @@ pub fn generate_cells(points: &[(f64, f64)], cli: &cli::Cli) -> Result<Vec<usize
                 "Generating cells using Rayon (parallel CPU) with resolution {}...",
                 cli.reso
             );
-            generate_cells::jfa::cpu::parallel::jfa(points, (cli.x, cli.y), cli.reso)
+            if cli.num_threads > 0 {
+                println!("Using {} threads", cli.num_threads);
+            } else {
+                println!("Using default thread pool configuration");
+            }
+            generate_cells::jfa::cpu::parallel::jfa(points, (cli.x, cli.y), cli.reso, cli.num_threads)
         }
     }
 }

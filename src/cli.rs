@@ -49,6 +49,10 @@ pub struct Cli {
     // Disable honeycomb visualization
     #[arg(long = "no-mesh-visualization")]
     pub no_mesh_visualization: bool,
+    
+    /// Sets the number of threads for parallel processing (Rayon)
+    #[arg(long = "threads", default_value_t = 0)]
+    pub num_threads: usize,
 }
 
 /// Point generation modes
@@ -94,6 +98,9 @@ pub fn print_config(cli: &Cli) {
     println!("JFA mode: {:?}", cli.jfa_mode);
     if cli.jfa_mode != JfaMode::None {
         println!("JFA resolution: {}", cli.reso);
+        if cli.jfa_mode == JfaMode::Rayon && cli.num_threads > 0 {
+            println!("Number of threads: {}", cli.num_threads);
+        }
     }
     if cli.no_mesh_visualization {
         println!("Mesh visualization disabled");

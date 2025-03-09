@@ -73,7 +73,30 @@ fn jfa_step_parallel(
             }
         });
 }
+
 pub fn jfa(
+    points: &[(f64, f64)],
+    config: (f64, f64),
+    reso: u32,
+    num_threads: usize,
+) -> Result<Vec<usize>, &'static str> {
+    // Configure thread pool if specified
+    if num_threads > 0 {
+        // Use a scoped thread pool to ensure it's only used for this function
+        let thread_pool = rayon::ThreadPoolBuilder::new()
+            .num_threads(num_threads)
+            .build()
+            .map_err(|_| "Failed to build thread pool")?;
+            
+        // Execute the JFA algorithm with the custom thread pool
+        return thread_pool.install(|| jfa_internal(points, config, reso));
+    }
+    
+    // Use the global thread pool (default behavior)
+    jfa_internal(points, config, reso)
+}
+
+fn jfa_internal(
     points: &[(f64, f64)],
     config: (f64, f64),
     reso: u32,
@@ -93,7 +116,6 @@ pub fn jfa(
     normal_points.iter().enumerate().for_each(|(i, point)| {
         let color = i + 1; // 0 means uncolored
         let index = point.0 + point.1 * reso;
-        // Use mutex to safely update the grid
         pixel_grid[index] = color;
     });
 

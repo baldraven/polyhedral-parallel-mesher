@@ -27,8 +27,8 @@ fn main() {
         std::process::exit(1);
     });
     let duration_mesh = start_mesh.elapsed();
-    println!("Time elapsed for mesh generation: {:?}", duration_mesh);
- */
+    println!("Time elapsed for mesh generation: {:?}", duration_mesh); */
+
     // Visualize
     handle_output(&cli, &points, Some(&pixels), None);
 }
